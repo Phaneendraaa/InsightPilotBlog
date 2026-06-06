@@ -11,5 +11,5 @@ export function ThemeScript() {
     })();
   `
 
-  return <script dangerouslySetInnerHTML={{ __html: script }} />
+  return <script id="theme-script" dangerouslySetInnerHTML={{ __html: script }} />
 }

@@ -22,7 +22,7 @@ const ALLOWED_SCRIPT_HOSTS = [
 
 /** Preserve author-placed scripts (e.g. AdSense) in article HTML while stripping other dangerous tags. */
 export function sanitizeArticleHtml(html: string): string {
-  return sanitizeHtml(html, {
+  const result = sanitizeHtml(html, {
     allowedTags: ALLOWED_TAGS,
     disallowedTagsMode: 'discard',
     exclusiveFilter(frame) {
@@ -65,4 +65,7 @@ export function sanitizeArticleHtml(html: string): string {
       }),
     },
   })
+  // sanitize-html serialises boolean attrs as `async=""` but React/browsers
+  // emit bare `async`. Normalise so server and client HTML match exactly.
+  return result.replace(/ async=""/g, ' async')
 }
