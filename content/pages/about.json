@@ -1,0 +1,5 @@
+{
+  "title": "About {{SITE_NAME}}",
+  "description": "Learn about {{SITE_NAME}} — our mission, editorial values, and coverage areas.",
+  "subtitle": "{{SITE_TAGLINE}}"
+}

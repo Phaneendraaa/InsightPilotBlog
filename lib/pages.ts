@@ -1,7 +1,6 @@
 import fs from 'fs'
 import path from 'path'
 import { sanitizeArticleHtml } from './sanitize'
-import { parseHtmlMeta } from './html-meta'
 import { substituteSiteTokens } from './site'
 
 export interface StaticPage {
@@ -11,27 +10,42 @@ export interface StaticPage {
   subtitle?: string
 }
 
-const pagesDir = path.join(process.cwd(), 'content', 'pages')
+interface PageMeta {
+  title?: string
+  description?: string
+  subtitle?: string
+}
 
+const pagesDir = path.join(process.cwd(), 'content', 'pages')
 const pageCache = new Map<string, { meta: StaticPage; content: string }>()
 
 function parsePage(slug: string) {
   const cached = pageCache.get(slug)
   if (cached) return cached
 
-  const filePath = path.join(pagesDir, `${slug}.html`)
-  if (!fs.existsSync(filePath)) return undefined
+  const htmlPath = path.join(pagesDir, `${slug}.html`)
+  const jsonPath = path.join(pagesDir, `${slug}.json`)
 
-  const raw = substituteSiteTokens(fs.readFileSync(filePath, 'utf-8'))
-  const { meta: htmlMeta, body } = parseHtmlMeta(raw)
-  const content = sanitizeArticleHtml(body.trim())
+  if (!fs.existsSync(htmlPath) || !fs.existsSync(jsonPath)) return undefined
+
+  let jsonMeta: PageMeta = {}
+  try {
+    jsonMeta = JSON.parse(
+      substituteSiteTokens(fs.readFileSync(jsonPath, 'utf-8'))
+    ) as PageMeta
+  } catch {
+    jsonMeta = {}
+  }
+
+  const rawHtml = substituteSiteTokens(fs.readFileSync(htmlPath, 'utf-8'))
+  const content = sanitizeArticleHtml(rawHtml.trim())
 
   const parsed = {
     meta: {
       slug,
-      title: htmlMeta.title ?? slug,
-      description: htmlMeta.description ?? '',
-      subtitle: htmlMeta.subtitle,
+      title: jsonMeta.title ?? slug,
+      description: jsonMeta.description ?? '',
+      subtitle: jsonMeta.subtitle,
     },
     content,
   }

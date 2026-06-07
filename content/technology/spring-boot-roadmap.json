@@ -1,0 +1,12 @@
+{
+  "title": "Spring Boot Learning Roadmap",
+  "description": "A step-by-step roadmap to learn Spring Boot from basics to production-ready applications.",
+  "publishDate": "2026-03-10",
+  "coverImage": "/images/spring-boot.svg",
+  "tags": [
+    "Java",
+    "Spring Boot",
+    "backend"
+  ],
+  "featured": false
+}

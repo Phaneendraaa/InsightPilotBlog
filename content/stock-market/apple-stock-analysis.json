@@ -1,0 +1,12 @@
+{
+  "title": "Apple Stock Analysis",
+  "description": "A balanced look at Apple",
+  "publishDate": "2026-02-01",
+  "coverImage": "/images/apple-stock.svg",
+  "tags": [
+    "AAPL",
+    "stock analysis",
+    "tech stocks"
+  ],
+  "featured": true
+}

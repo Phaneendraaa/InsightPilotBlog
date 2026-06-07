@@ -34,12 +34,29 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Build AdSense snippet as a plain string — keeps it outside React's
+  // reconciliation entirely, preventing the hydration mismatch caused by
+  // browser extensions injecting scripts into <head>.
+  const adsenseSnippet = siteConfig.adsenseClientId
+    ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${siteConfig.adsenseClientId}" crossorigin="anonymous"></script>`
+    : ''
+
   return (
     <html lang="en" className={`${fontSans.variable} ${fontSerif.variable}`} suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>
       <body>
+        {/* AdSense loader — injected via dangerouslySetInnerHTML so React never
+            reconciles the <script> element, avoiding hydration mismatches from
+            browser extensions that inject their own AdSense scripts. */}
+        {adsenseSnippet && (
+          <div
+            id="adsense-loader"
+            style={{ display: 'none' }}
+            dangerouslySetInnerHTML={{ __html: adsenseSnippet }}
+          />
+        )}
         {siteConfig.name && (
           <>
             <script
