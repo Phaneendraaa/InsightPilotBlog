@@ -1,27 +1,30 @@
-# Developer Guide — Pure HTML Publishing
+# Developer Guide — JSON + HTML Publishing
 
-This site serves **plain HTML only**. No MDX, no Markdown, no YAML frontmatter, no React components inside content.
+This site uses a two-file system for content. No MDX, no Markdown, no YAML, no React inside content.
 
 > **AI agents:** see `HtmlclaudeGuide.md` for content generation rules.
 
-You edit `.html` files. The app reads them at build time, extracts metadata from `<meta>` tags, and renders the HTML body as-is — including your AdSense scripts and ad units.
+Each article is two files:
+- `<slug>.json` — all metadata (title, description, dates, tags)
+- `<slug>.html` — pure HTML body (headings, paragraphs, tables, ad units)
+
+**You never edit React/Next.js code to publish content.**
 
 ---
 
 ## How it works
 
 ```
-content/finance/best-credit-cards-2026.html
+content/finance/best-credit-cards-2026.json  ← metadata
+content/finance/best-credit-cards-2026.html  ← body
         ↓ build time
 /finance/best-credit-cards-2026  (static page)
 ```
 
-1. Create or edit a `.html` file in `content/<category>/` or `content/pages/`
-2. Add `<meta>` tags at the top for SEO and listings
-3. Write the page body in pure HTML — headings, tables, images, **AdSense scripts**
+1. Create `<slug>.json` with article metadata
+2. Create `<slug>.html` with article body HTML
+3. Add any images to `public/images/`
 4. Push to GitHub → Vercel rebuilds automatically
-
-**You never edit React/Next.js code to publish content.**
 
 ---
 
@@ -30,13 +33,13 @@ content/finance/best-credit-cards-2026.html
 All branding comes from env vars. Nothing is hardcoded in the app.
 
 ```env
-SITE_NAME=YourBrand
-SITE_DESCRIPTION=Your site description for SEO
-SITE_URL=https://yourdomain.com
-SITE_TAGLINE=Your homepage tagline
-SITE_SEO_TITLE=YourBrand — Finance, Insurance, Stock Market & Tech Guides
+SITE_NAME=MagicPush
+SITE_DESCRIPTION=Expert guides on finance, insurance, mortgage rates, stock analysis, and tech.
+SITE_URL=https://magicpush.vercel.app
+SITE_TAGLINE=Stay Ahead of What Matters.
+SITE_SEO_TITLE=MagicPush — Finance, Insurance, Stock Market & Tech Guides
 SITE_H1=Finance, Insurance, Stock Market & Best Rates Guides
-CONTACT_EMAIL=hello@yourdomain.com
+CONTACT_EMAIL=hello@magicpush.in
 ADSENSE_CLIENT_ID=ca-pub-XXXXXXXXXXXXXXXX
 ADSENSE_PUBLISHER_ID=pub-XXXXXXXXXXXXXXXX
 
@@ -53,41 +56,34 @@ LINKEDIN_URL=
 | `SITE_DESCRIPTION` | Homepage SEO, footer |
 | `SITE_URL` | Canonical URLs, sitemap, RSS, Open Graph |
 | `SITE_TAGLINE` | Homepage hero subtitle |
-| `SITE_SEO_TITLE` | Homepage `<title>` tag — use 20–60 chars with primary keywords |
-| `SITE_H1` | Homepage main heading — include finance, insurance, stock market, etc. |
-| `CONTACT_EMAIL` | Contact pages, privacy policy |
-| `ADSENSE_CLIENT_ID` | Replaced in HTML via `{{ADSENSE_CLIENT_ID}}` token |
-| `ADSENSE_PUBLISHER_ID` | Used by `/ads.txt` route |
+| `SITE_SEO_TITLE` | Homepage `<title>` — use 20–60 chars with primary keywords |
+| `SITE_H1` | Homepage main heading |
+| `CONTACT_EMAIL` | Contact page, privacy policy |
+| `ADSENSE_CLIENT_ID` | Global AdSense loader + `{{ADSENSE_CLIENT_ID}}` token in HTML |
+| `ADSENSE_PUBLISHER_ID` | Auto-generates `/ads.txt` route |
 
 Copy `.env.example` to `.env.local` and fill in your values.
 
-### SEO checklist (Vercel production)
+### Vercel production checklist
 
-Set these on Vercel for **magicpush.vercel.app** (or your domain):
+Set these in Vercel → Settings → Environment Variables before deploying:
 
 ```env
+SITE_NAME=MagicPush
 SITE_SEO_TITLE=MagicPush — Finance, Insurance, Stock Market & Tech Guides
 SITE_H1=Finance, Insurance, Stock Market & Best Rates Guides
 SITE_DESCRIPTION=Expert guides on best credit cards, mortgage rates, insurance policies, stock analysis, and tech — updated for 2026.
 SITE_URL=https://magicpush.vercel.app
+CONTACT_EMAIL=hello@magicpush.in
+ADSENSE_CLIENT_ID=ca-pub-XXXXXXXXXXXXXXXX
+ADSENSE_PUBLISHER_ID=pub-XXXXXXXXXXXXXXXX
 ```
 
-**DNS (not code — do in your domain registrar):**
+After adding env vars, always **manually redeploy** — Vercel does not auto-redeploy on env changes.
 
-- Add an **SPF TXT record** to prevent email spoofing: `v=spf1 -all` (or include your mail provider)
-- Verify `ads.txt` loads at `https://yourdomain.com/ads.txt` after setting `ADSENSE_PUBLISHER_ID`
+### Token placeholders in HTML files
 
-**Built-in SEO features:**
-
-- Dynamic Open Graph image (`/opengraph-image`) generated from env vars
-- JSON-LD: WebSite, Organization, ItemList (homepage), NewsArticle, FAQPage, BreadcrumbList
-- Custom 404 page with helpful links
-- WebP/AVIF image optimization via Next.js
-- `/sitemap.xml`, `/robots.txt`, `/rss.xml`
-
-### Token placeholders in HTML
-
-Use these inside any `.html` file — they are replaced at build time:
+Use these anywhere in `.html` body files — replaced at build time:
 
 | Token | Replaced with |
 |-------|---------------|
@@ -102,33 +98,51 @@ Use these inside any `.html` file — they are replaced at build time:
 
 ## Article file format
 
-**Path:** `content/<category>/<slug>.html`  
-**URL:** `/<category>/<slug>`
+**Two files per article. Both must exist or the article will not appear.**
 
-### Example: `content/finance/best-credit-cards-2026.html`
+### The JSON file — metadata
+
+**Path:** `content/<category>/<slug>.json`
+
+```json
+{
+  "title": "Best Credit Cards for 2026",
+  "description": "A practical guide to the top credit cards for rewards, travel, and everyday spending in 2026.",
+  "publishDate": "2026-01-15",
+  "coverImage": "/images/finance-cards.svg",
+  "tags": ["credit cards", "personal finance", "rewards"],
+  "featured": true
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `title` | Yes | Article headline — used for SEO, cards, JSON-LD. Under 60 chars. |
+| `description` | Yes | SEO summary — 1–2 sentences, under 160 chars. |
+| `publishDate` | Yes | `YYYY-MM-DD` — controls sort order, newest first. |
+| `coverImage` | No | Path starting with `/images/`. File must be in `public/images/`. |
+| `tags` | No | JSON array of strings (not comma-separated). |
+| `featured` | No | `true` or `false`. Appears in homepage featured section (max 3). |
+| `author` | No | Author display name. |
+| `authorImage` | No | Path to author photo. |
+| `authorBio` | No | Short author bio. |
+
+### The HTML file — body only
+
+**Path:** `content/<category>/<slug>.html`
 
 ```html
-<meta name="title" content="Best Credit Cards for 2026" />
-<meta name="description" content="A practical guide to the top credit cards for 2026." />
-<meta name="publish-date" content="2026-01-15" />
-<meta name="cover-image" content="/images/finance-cards.svg" />
-<meta name="tags" content="credit cards, personal finance, rewards" />
-<meta name="featured" content="true" />
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ADSENSE_CLIENT_ID}}" crossorigin="anonymous"></script>
-
 <img src="/images/finance-cards.svg" alt="Best Credit Cards for 2026" width="1200" height="675" loading="eager" />
 
 <h1>Best Credit Cards for 2026</h1>
 
 <div class="ad-slot" style="text-align:center;margin:2rem 0">
-  <ins class="adsbygoogle"
-    style="display:block"
+  <ins class="adsbygoogle" style="display:block"
     data-ad-client="{{ADSENSE_CLIENT_ID}}"
+    data-ad-slot="YOUR_SLOT_ID"
     data-ad-format="auto"
     data-full-width-responsive="true"></ins>
 </div>
-<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 
 <p>Your article content starts here. Pure HTML only.</p>
 
@@ -145,66 +159,38 @@ Use these inside any `.html` file — they are replaced at build time:
 </table>
 ```
 
-### Meta tags reference
-
-| Meta name | Required | Description |
-|-----------|----------|-------------|
-| `title` | Yes | Article headline (also used for SEO and cards) |
-| `description` | Yes | SEO summary (1–2 sentences) |
-| `publish-date` | Yes | `YYYY-MM-DD` — controls sort order |
-| `cover-image` | No | Path in `public/` e.g. `/images/photo.jpg` — shown on cards |
-| `tags` | No | Comma-separated tags |
-| `featured` | No | `true` or `false` — homepage featured section |
-| `author` | No | Author name |
-| `author-image` | No | Author photo path |
-| `author-bio` | No | Short author bio |
-
-> **Important:** Meta tags are parsed at build time and removed from the visible page. They never render in the browser.
+**Rules for HTML files:**
+- No `<meta>` tags — all metadata goes in the `.json` file
+- No AdSense loader `<script async src="...adsbygoogle...">` — injected globally by the app
+- Ad unit `<ins class="adsbygoogle">` tags are fine — place wherever you want ads
+- Use `{{ADSENSE_CLIENT_ID}}` token in `data-ad-client`
 
 ---
 
-## Google AdSense — per-page setup
+## Google AdSense
 
-AdSense is **not** injected by the app. You place scripts and ad units in each HTML file yourself.
+The AdSense **loader script** is injected once globally by `app/layout.tsx` — you never add it to individual files.
 
-### Step 1 — Set env var
-
-```env
-ADSENSE_CLIENT_ID=ca-pub-XXXXXXXXXXXXXXXX
-```
-
-### Step 2 — Load the AdSense script (once per page, near top)
-
-```html
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ADSENSE_CLIENT_ID}}" crossorigin="anonymous"></script>
-```
-
-### Step 3 — Place ad units where you want ads
+You only place **ad unit slots** in HTML files where you want ads to appear:
 
 ```html
 <div class="ad-slot" style="text-align:center;margin:2rem 0">
-  <ins class="adsbygoogle"
-    style="display:block"
+  <ins class="adsbygoogle" style="display:block"
     data-ad-client="{{ADSENSE_CLIENT_ID}}"
     data-ad-slot="YOUR_SLOT_ID"
     data-ad-format="auto"
     data-full-width-responsive="true"></ins>
 </div>
-<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 ```
 
-Add as many ad units as you want, anywhere in the article body. Common placements:
-- After the intro paragraph
-- Between major `<h2>` sections
-- Before the FAQ section
+Common placements: after intro paragraph, between `<h2>` sections, before FAQ.
 
-### Step 4 — ads.txt
+**Do NOT add** `<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>` — the global loader handles this.
 
-Create `public/ads.txt` manually:
+### ads.txt
 
-```
-google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
-```
+The `/ads.txt` route is auto-generated from the `ADSENSE_PUBLISHER_ID` env var. No file needed.
+Verify it works at `https://magicpush.vercel.app/ads.txt` after deploy.
 
 ---
 
@@ -223,30 +209,28 @@ google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
 | Sports | `content/sports/` | `/sports/real-madrid-vs-barcelona` |
 | General | `content/general/` | `/general/my-article` |
 
-The filename (without `.html`) becomes the URL slug. Use lowercase and hyphens.
+The filename (without `.html`/`.json`) becomes the URL slug. Use lowercase and hyphens.
 
 ---
 
-## Trust / legal pages
+## Static / legal pages
 
-Static pages live in `content/pages/`:
+Pages live in `content/pages/` — same two-file format:
 
 ```
-content/pages/about.html          → /about
-content/pages/contact.html        → /contact
-content/pages/privacy-policy.html → /privacy-policy
-content/pages/terms.html          → /terms
-content/pages/disclaimer.html     → /disclaimer
-content/pages/editorial-policy.html → /editorial-policy
+content/pages/about.json + about.html             → /about
+content/pages/contact.json + contact.html         → /contact
+content/pages/privacy-policy.json + *.html        → /privacy-policy
+content/pages/terms.json + terms.html             → /terms
+content/pages/disclaimer.json + disclaimer.html   → /disclaimer
+content/pages/editorial-policy.json + *.html      → /editorial-policy
 ```
 
-Same format as articles — meta tags + HTML body + your AdSense scripts.
+Do not add AdSense ad units to privacy-policy, terms, or disclaimer pages — this violates Google AdSense policy.
 
 ---
 
-## Allowed HTML in content
-
-These tags are permitted (everything else is stripped for security):
+## Allowed HTML tags in content
 
 ```
 h1–h6  p  ul  ol  li  strong  em  a  img
@@ -254,34 +238,34 @@ table  thead  tbody  tr  th  td  blockquote  code  pre  hr  br
 div  span  ins  script
 ```
 
-Scripts are allowed only from:
-- `pagead2.googlesyndication.com` (AdSense)
+Stripped (never use): `iframe`, `style`, `form`, `input`, `textarea`, `svg`, `object`, `embed`
+
+External scripts allowed from:
+- `pagead2.googlesyndication.com` (AdSense ad units only — NOT the loader)
 - `www.googletagmanager.com`
 - `www.google-analytics.com`
-
-Inline `(adsbygoogle = window.adsbygoogle || []).push({});` scripts are allowed.
 
 ---
 
 ## Images
 
-Store files in `public/images/` and reference with absolute paths:
+Store in `public/images/`, reference with absolute paths:
 
 ```html
 <img src="/images/my-photo.jpg" alt="Descriptive alt text" width="800" height="450" loading="lazy" />
 ```
 
-Cover images for article cards:
+Cover image (referenced in JSON, optionally shown as hero in HTML):
 
-```html
-<meta name="cover-image" content="/images/my-photo.jpg" />
+```json
+"coverImage": "/images/my-photo.jpg"
 ```
 
 ---
 
 ## FAQ section (automatic JSON-LD)
 
-Add a FAQ section using plain HTML — FAQ schema is generated automatically:
+Structure FAQs with `<h3>` + `<p>` under a FAQ `<h2>` — schema generated automatically:
 
 ```html
 <h2>Frequently Asked Questions</h2>
@@ -304,18 +288,23 @@ npm run dev
 
 Open `http://localhost:3000/finance/best-credit-cards-2026`
 
-**Checklist:**
-- [ ] Meta title and description correct
-- [ ] Cover image loads on homepage card
-- [ ] AdSense units appear (requires valid `ADSENSE_CLIENT_ID`)
-- [ ] Article listed on category page
-- [ ] No YAML `---` blocks remaining in file
+**Checklist before pushing:**
+- [ ] Both `.json` and `.html` files exist for the article
+- [ ] JSON has `title`, `description`, `publishDate`
+- [ ] `publishDate` is `YYYY-MM-DD`
+- [ ] `coverImage` starts with `/images/`
+- [ ] `tags` is a JSON array, not a comma string
+- [ ] No `<meta>` tags in HTML file
+- [ ] No AdSense loader `<script>` in HTML file
+- [ ] Cover image file exists in `public/images/`
+- [ ] Article appears on category listing page
 
 ---
 
 ## Publish workflow
 
 ```bash
+git add content/finance/my-article.json
 git add content/finance/my-article.html
 git add public/images/my-cover.jpg
 git commit -m "Add article: My Article Title"
@@ -324,49 +313,43 @@ git push
 
 ---
 
-## What the app handles automatically
+## Built-in SEO features
 
-| Feature | Handled by app |
-|---------|----------------|
-| Article page route | Yes — from filename |
-| SEO metadata | Yes — from `<meta>` tags |
-| JSON-LD (NewsArticle, FAQ, Breadcrumb) | Yes |
-| Sitemap + RSS | Yes |
-| Homepage / category listings | Yes — from meta tags |
-| AdSense placement | **No — you put it in HTML** |
-| Article body content | **No — pure HTML from your file** |
+| Feature | How |
+|---------|-----|
+| Article page route | Auto — from filename |
+| Page title, description, canonical | From `.json` metadata |
+| Open Graph + Twitter cards | Auto from metadata |
+| JSON-LD (NewsArticle, FAQPage, BreadcrumbList) | Auto |
+| WebSite + Organization schema | Auto from env vars |
+| Sitemap (`/sitemap.xml`) | Auto — all articles + pages |
+| RSS feed (`/rss.xml`) | Auto |
+| Dynamic OG image (`/opengraph-image`) | Auto from env vars |
+| `ads.txt` (`/ads.txt`) | Auto from `ADSENSE_PUBLISHER_ID` |
+| `robots.txt` | Auto |
+| AdSense loader | Global — `app/layout.tsx` |
+| Ad unit placement | You — `<ins>` in HTML body |
+| Article body content | You — pure HTML |
 
 ---
 
-## Migration from old format
+## What the app does NOT do
 
-If you have files with YAML frontmatter (`---` blocks), run:
-
-```bash
-node scripts/convert-to-pure-html.mjs
-```
-
-This converts YAML → `<meta>` tags and adds AdSense placeholders.
+- Parse `<meta>` tags in HTML — use `.json` files instead
+- Inject AdSense per-page — one global loader in `app/layout.tsx`
+- Support Markdown, MDX, or YAML in content files
 
 ---
 
 ## Quick reference
 
 ```
-Article:     content/<category>/<slug>.html
-Static page: content/pages/<slug>.html
-Images:      public/images/<file>
-Env config:  .env.local
+Article:     content/<category>/<slug>.json + <slug>.html
+Static page: content/pages/<slug>.json + <slug>.html
+Images:      public/images/<file>  →  /images/<file>
+Env config:  .env.local (copy from .env.example)
 Preview:     npm run dev
-Convert old: node scripts/convert-to-pure-html.mjs
+
+ALWAYS:  two files per article, JSON for metadata, HTML for body
+NEVER:   meta tags in HTML, AdSense loader in HTML, Markdown, MDX
 ```
-
-**Minimum meta tags to publish:**
-
-```html
-<meta name="title" content="Your Article Title" />
-<meta name="description" content="One or two sentence SEO summary." />
-<meta name="publish-date" content="2026-06-06" />
-```
-
-That is everything you need to publish on this site.
